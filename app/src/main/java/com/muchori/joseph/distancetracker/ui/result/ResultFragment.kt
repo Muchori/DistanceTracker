@@ -1,10 +1,11 @@
-package com.muchori.joseph.distancetracker
+package com.muchori.joseph.distancetracker.ui.result
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import com.muchori.joseph.distancetracker.R
 
 class ResultFragment : Fragment() {
 
