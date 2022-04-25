@@ -1,9 +1,10 @@
-package com.muchori.joseph.distancetracker
+package com.muchori.joseph.distancetracker.ui
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
+import com.muchori.joseph.distancetracker.R
 import com.muchori.joseph.distancetracker.util.Permissions.hasLocationPermission
 
 class MainActivity : AppCompatActivity() {

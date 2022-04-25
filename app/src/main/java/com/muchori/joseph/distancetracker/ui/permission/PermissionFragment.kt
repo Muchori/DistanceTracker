@@ -1,4 +1,4 @@
-package com.muchori.joseph.distancetracker
+package com.muchori.joseph.distancetracker.ui.permission
 
 
 import android.os.Bundle
@@ -7,9 +7,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import com.muchori.joseph.distancetracker.R
+import com.muchori.joseph.distancetracker.databinding.FragmentPermissionBinding
 import com.muchori.joseph.distancetracker.util.Permissions.hasLocationPermission
 import com.muchori.joseph.distancetracker.util.Permissions.requestLocationPermission
-import com.muchori.joseph.distancetracker.databinding.FragmentPermissionBinding
 import com.vmadalin.easypermissions.EasyPermissions
 import com.vmadalin.easypermissions.dialogs.SettingsDialog
 
