@@ -2,6 +2,7 @@ package com.muchori.joseph.distancetracker.ui.maps
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.LayoutInflater
@@ -10,14 +11,23 @@ import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.*
 import com.muchori.joseph.distancetracker.R
 import com.muchori.joseph.distancetracker.databinding.FragmentMapsBinding
+import com.muchori.joseph.distancetracker.model.Result
 import com.muchori.joseph.distancetracker.service.TrackerService
+import com.muchori.joseph.distancetracker.ui.maps.MapUtil.calculateDistance
+import com.muchori.joseph.distancetracker.ui.maps.MapUtil.calculateElapsedTime
+import com.muchori.joseph.distancetracker.ui.maps.MapUtil.setCameraPosition
 import com.muchori.joseph.distancetracker.util.Constants.ACTION_SERVICE_START
+import com.muchori.joseph.distancetracker.util.Constants.ACTION_SERVICE_STOP
 import com.muchori.joseph.distancetracker.util.ExtensionFunctions.disable
+import com.muchori.joseph.distancetracker.util.ExtensionFunctions.enable
 import com.muchori.joseph.distancetracker.util.ExtensionFunctions.hide
 import com.muchori.joseph.distancetracker.util.ExtensionFunctions.show
 import com.muchori.joseph.distancetracker.util.Permissions.hasBackgroundLocationPermission
@@ -35,6 +45,13 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
 
   private lateinit var map: GoogleMap
 
+  private var startTime = 0L
+  private var stopTime = 0L
+
+  private var locationList = mutableListOf<LatLng>()
+  private var polylineList = mutableListOf<Polyline>()
+  private var markerList = mutableListOf<Marker>()
+
   override fun onCreateView(
     inflater: LayoutInflater,
     container: ViewGroup?,
@@ -45,21 +62,12 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     binding.startButton.setOnClickListener {
       onStartButtonClicked()
     }
-    binding.stopButton.setOnClickListener { }
+    binding.stopButton.setOnClickListener {
+      onStopButtonClicked()
+    }
     binding.resetButton.setOnClickListener { }
 
     return binding.root
-  }
-
-  private fun onStartButtonClicked() {
-    if (hasBackgroundLocationPermission(requireContext())) {
-      startCountDown()
-      binding.startButton.disable()
-      binding.startButton.hide()
-      binding.stopButton.show()
-    } else {
-      requestBackgroundLocationPermission(this)
-    }
   }
 
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -81,6 +89,75 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
       isCompassEnabled = false
       isScrollGesturesEnabled = false
     }
+    observeTrackerService()
+  }
+
+  private fun observeTrackerService() {
+    TrackerService.locationList.observe(viewLifecycleOwner) {
+      if (it != null) {
+        locationList = it
+        if (locationList.size > 1) {
+          binding.stopButton.enable()
+        }
+        drawPolyline()
+        followPolyline()
+      }
+    }
+
+    TrackerService.startTime.observe(viewLifecycleOwner) {
+      startTime = it
+    }
+
+    TrackerService.stopTime.observe(viewLifecycleOwner) {
+      stopTime = it
+      if (stopTime != 0L) {
+        if (locationList.isNotEmpty()) {
+          showBiggerPicture()
+          displayResults()
+        }
+      }
+    }
+  }
+
+  private fun drawPolyline() {
+    val polyline = map.addPolyline(
+      PolylineOptions().apply {
+        width(10f)
+        color(Color.BLACK)
+        jointType(JointType.ROUND)
+        startCap(ButtCap())
+        endCap(ButtCap())
+        addAll(locationList)
+      }
+    )
+  }
+
+  private fun followPolyline() {
+    if (locationList.isNotEmpty()) {
+      map.animateCamera(
+        (
+            CameraUpdateFactory.newCameraPosition(setCameraPosition(locationList.last()))),
+        1000,
+        null
+      )
+    }
+  }
+
+  private fun onStartButtonClicked() {
+    if (hasBackgroundLocationPermission(requireContext())) {
+      startCountDown()
+      binding.startButton.disable()
+      binding.startButton.hide()
+      binding.stopButton.show()
+    } else {
+      requestBackgroundLocationPermission(this)
+    }
+  }
+
+  private fun onStopButtonClicked() {
+    stopForegroundService()
+    binding.stopButton.hide()
+    binding.startButton.show()
   }
 
   private fun startCountDown() {
@@ -111,6 +188,11 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
     timer.start()
   }
 
+  private fun stopForegroundService() {
+    binding.startButton.disable()
+    sendActionCommandService(ACTION_SERVICE_STOP)
+  }
+
   private fun sendActionCommandService(action: String) {
     Intent(
       requireContext(),
@@ -120,6 +202,44 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
       requireContext().startService(this)
     }
   }
+
+  private fun showBiggerPicture() {
+    val bounds = LatLngBounds.Builder()
+    for (location in locationList) {
+      bounds.include(location)
+    }
+    map.animateCamera(
+      CameraUpdateFactory.newLatLngBounds(
+        bounds.build(), 100
+      ), 2000, null
+    )
+//    addMarker(locationList.first())
+//    addMarker(locationList.last())
+  }
+
+//  private fun addMarker(position: LatLng) {
+//    val marker = map.addMarker(MarkerOptions().position(position))
+//    markerList.add(marker!!)
+//  }
+
+  private fun displayResults() {
+    val result = Result(
+      calculateDistance(locationList),
+      calculateElapsedTime(startTime, stopTime)
+    )
+    lifecycleScope.launch {
+      delay(2500)
+      val directions = MapsFragmentDirections.actionMapsFragmentToResultFragment(result)
+      findNavController().navigate(directions)
+      binding.startButton.apply {
+        hide()
+        enable()
+      }
+      binding.stopButton.hide()
+      binding.resetButton.show()
+    }
+  }
+
 
   override fun onMyLocationButtonClick(): Boolean {
     binding.hintTextView.animate().alpha(0f).duration = 1500
