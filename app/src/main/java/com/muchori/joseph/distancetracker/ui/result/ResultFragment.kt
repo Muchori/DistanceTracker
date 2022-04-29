@@ -1,5 +1,6 @@
 package com.muchori.joseph.distancetracker.ui.result
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -20,13 +21,25 @@ class ResultFragment : BottomSheetDialogFragment() {
     inflater: LayoutInflater, container: ViewGroup?,
     savedInstanceState: Bundle?
   ): View {
-    // Inflate the layout for this fragment
     _binding = FragmentResultBinding.inflate(inflater, container, false)
 
     binding.distanceValueTextView.text = getString(R.string.result, args.result.distance)
     binding.timeValueTextView.text = args.result.distance
 
+    binding.shareButton.setOnClickListener {
+      shareResult()
+    }
+
     return binding.root
+  }
+
+  private fun shareResult() {
+    val shareResult = Intent().apply {
+      action = Intent.ACTION_SEND
+      type = "text/plain"
+      putExtra(Intent.EXTRA_TEXT, "I went ${args.result.distance}km in ${args.result.time}")
+    }
+    startActivity(shareResult)
   }
 
   override fun onDestroyView() {
