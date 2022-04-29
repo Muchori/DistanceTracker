@@ -55,6 +55,7 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
   private var markerList = mutableListOf<Marker>()
 
   private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+
   override fun onCreateView(
     inflater: LayoutInflater,
     container: ViewGroup?,
@@ -72,10 +73,11 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
       onResetButtonClicked()
     }
 
-    fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(requireActivity())
 
+    fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(requireActivity())
     return binding.root
   }
+
 
   override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     super.onViewCreated(view, savedInstanceState)
@@ -139,6 +141,7 @@ class MapsFragment : Fragment(), OnMapReadyCallback, GoogleMap.OnMyLocationButto
       }
     )
     polylineList.add(polyline)
+
   }
 
   private fun followPolyline() {

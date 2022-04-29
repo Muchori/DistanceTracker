@@ -40,6 +40,7 @@ class ResultFragment : BottomSheetDialogFragment() {
       putExtra(Intent.EXTRA_TEXT, "I went ${args.result.distance}km in ${args.result.time}")
     }
     startActivity(shareResult)
+
   }
 
   override fun onDestroyView() {
